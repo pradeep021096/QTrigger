@@ -70,9 +70,9 @@ class QDoc:
         # print(request)
         webSocket.send(json.dumps(request))
         response = webSocket.recv()
-
-        return True
         # print(response)
+        return True
+        
 
 
 #All Qlik Document 
@@ -81,7 +81,7 @@ class QDocFactory:
 
     def __init__(self, socket):
 
-        self.webSocket = socket.webSocket
+        self.webSocket = socket
         self.qDocList = self._generate_Qlik_Docs()
     
     def _generate_Qlik_Docs(self):
@@ -115,14 +115,15 @@ class QWebSocket:
 
     def __del__(self):
         self.webSocket.close()
+    
+    def get(self):
+        return self.webSocket
 
 
 def main():
 
     socket = QWebSocket()
-    qFactory = QDocFactory(socket)
-
-    # print(qFactory.qDocList[3].reloadDoc(socket.webSocket))
+    qFactory = QDocFactory(socket.get())
 
     reloadListPath = './ReloadList.json'
 
@@ -131,9 +132,8 @@ def main():
             docId = app["AppId"]
             present, doc =  qFactory.isPresent(docId)
             if(present):
-                doc.reloadDoc(socket.webSocket)
+                doc.reloadDoc(socket.get())
             
-
 
 if __name__ == "__main__":
     
