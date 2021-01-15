@@ -15,16 +15,8 @@ from websocket import create_connection
 #   params      No
 # }
 
-#Request
-# {
-#     "jsonrpc" : self.jsonrpc,
-#     "handle" : self.handle,
-#     "method" : self.method,
-#     "params" : self.params
-# }
- 
 
-# Qlik Document Info
+# Qlik Document and fucntions
 class QDoc:
 
     def __init__(self, qDoc):
@@ -36,11 +28,8 @@ class QDoc:
     def _openDoc(self, webSocket):
 
         request = {"jsonrpc": "2.0", "method": "OpenDoc", "handle": -1, "params": [self.docId] }
-        # print(request)
-        webSocket.send(json.dumps(request))
-        response = webSocket.recv()
-        # print(response)
-        handle = json.loads(response)["result"]["qReturn"]["qHandle"]
+               
+        handle = webSocket.request(request)["result"]["qReturn"]["qHandle"]
 
         return handle
 
@@ -48,29 +37,19 @@ class QDoc:
         
         handle = self._openDoc(webSocket)
 
-        # print(handle)
         request = { "handle": handle, "method": "DoReload", "params": {}}
-        # print(request)
-        webSocket.send(json.dumps(request))
-        response = webSocket.recv()
-        # print(response)
-        status = json.loads(response)["result"]["qReturn"]
+ 
+        status = webSocket.request(request)["result"]["qReturn"]
 
         if(status):
             status = self.saveDoc(webSocket,handle)
-        else:
-            print("Reload error")
-            status = False
 
         return status
     
     def saveDoc(self,webSocket,handle):
 
         request = { "handle": handle, "method": "DoSave", "params": [] }
-        # print(request)
-        webSocket.send(json.dumps(request))
-        response = webSocket.recv()
-        # print(response)
+        webSocket.request(request)
         return True
         
 
@@ -87,9 +66,7 @@ class QDocFactory:
     def _generate_Qlik_Docs(self):
 
         request = {"jsonrpc": "2.0", "handle": -1, "method": "GetDocList", "params": [] }
-        self.webSocket.send(json.dumps(request))
-        response_list = json.loads(self.webSocket.recv())["result"]["qDocList"]
-
+        response_list = self.webSocket.request(request)["result"]["qDocList"]
         return [ QDoc(doc)  for doc in response_list ]
     
     
@@ -111,19 +88,19 @@ class QWebSocket:
 
         self.webSocket = create_connection(url, sslopt = sslopt)
         self.status = json.loads(self.webSocket.recv())["params"]["qSessionState"]
-        # print(self.status) 
 
     def __del__(self):
         self.webSocket.close()
     
-    def get(self):
-        return self.webSocket
+    def request(self,req):
+        self.webSocket.send(json.dumps(req))
+        return json.loads(self.webSocket.recv())
 
 
 def main():
 
     socket = QWebSocket()
-    qFactory = QDocFactory(socket.get())
+    qFactory = QDocFactory(socket)
 
     reloadListPath = './ReloadList.json'
 
@@ -132,7 +109,7 @@ def main():
             docId = app["AppId"]
             present, doc =  qFactory.isPresent(docId)
             if(present):
-                doc.reloadDoc(socket.get())
+                doc.reloadDoc(socket)
             
 
 if __name__ == "__main__":
