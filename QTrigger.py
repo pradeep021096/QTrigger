@@ -25,31 +25,31 @@ class QDoc:
         self.docTitle = qDoc["qTitle"]
         self.docId = qDoc["qDocId"]
     
-    def _openDoc(self, webSocket):
+    def _openDoc(self, qSocket):
 
-        request = {"jsonrpc": "2.0", "method": "OpenDoc", "handle": -1, "params": [self.docId] }
+        req = {"jsonrpc": "2.0", "method": "OpenDoc", "handle": -1, "params": [self.docId] }
                
-        handle = webSocket.request(request)["result"]["qReturn"]["qHandle"]
+        handle = qSocket.request(req)["result"]["qReturn"]["qHandle"]
 
         return handle
 
-    def reloadDoc(self,webSocket):
+    def reloadDoc(self,qSocket):
         
-        handle = self._openDoc(webSocket)
+        handle = self._openDoc(qSocket)
 
-        request = { "handle": handle, "method": "DoReload", "params": {}}
+        req = { "handle": handle, "method": "DoReload", "params": {}}
  
-        status = webSocket.request(request)["result"]["qReturn"]
+        status = qSocket.request(req)["result"]["qReturn"]
 
         if(status):
-            status = self.saveDoc(webSocket,handle)
+            status = self.saveDoc(qSocket,handle)
 
         return status
     
-    def saveDoc(self,webSocket,handle):
+    def saveDoc(self,qSocket,handle):
 
-        request = { "handle": handle, "method": "DoSave", "params": [] }
-        webSocket.request(request)
+        req = { "handle": handle, "method": "DoSave", "params": [] }
+        qSocket.request(req)
         return True
         
 
@@ -58,15 +58,14 @@ class QDoc:
 #Store All Doc Info
 class QDocFactory:
 
-    def __init__(self, socket):
+    def __init__(self, qSocket):
 
-        self.webSocket = socket
-        self.qDocList = self._generate_Qlik_Docs()
+        self.qDocList = self._generate_Qlik_Docs(qSocket)
     
-    def _generate_Qlik_Docs(self):
+    def _generate_Qlik_Docs(self,qSocket):
 
-        request = {"jsonrpc": "2.0", "handle": -1, "method": "GetDocList", "params": [] }
-        response_list = self.webSocket.request(request)["result"]["qDocList"]
+        req = {"jsonrpc": "2.0", "handle": -1, "method": "GetDocList", "params": [] }
+        response_list = qSocket.request(req)["result"]["qDocList"]
         return [ QDoc(doc)  for doc in response_list ]
     
     
